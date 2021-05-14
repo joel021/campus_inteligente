@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Campus Inteligente</string>
+    <string name="camera_error">Não foi possível encontrar uma câmera compatível.</string>
+    <string name="campus_inteligente">Campus Inteligente</string>
+    <string name="title_activity_infomacao">Infomacao</string>
+    <!--
+    This string is used for square devices and overridden by hello_world in
+    values-round/strings.xml for round devices.
+    -->
+    <string name="hello_world">Hello Square World!</string>
+    <string name="funcionamento">Funcionamento</string>
+    <string name="GPS_permissions">O app precisa saber sua localização para funcionar corretamente.</string>
+    <string name="btn_sim">Sim</string>
+    <string name="btn_fechar">Fechar</string>
+    <string name="btn_olhar_perm">Olhar permissões</string>
+</resources>

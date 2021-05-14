@@ -1,0 +1,10 @@
+CameraActivity.onCreate()
+CameraActivity.onStart()
+CameraActivity.onResume()
+CameraActivity.onPreviewFrame()
+DetectorActivity.onPreviewSizeChosen()
+DetectorActivity().processImage()
+CameraActivity.onPreviewFrame()
+
+
+Resolução da tela: 720,1344
