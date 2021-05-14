@@ -15,7 +15,6 @@ limitations under the License.
 
 package com.rv.pij2021.VUFRB.tflite.tracking;
 
-import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
@@ -24,26 +23,23 @@ import android.graphics.Paint.Cap;
 import android.graphics.Paint.Join;
 import android.graphics.Paint.Style;
 import android.graphics.RectF;
-import android.util.Log;
 import android.util.Pair;
-import android.util.TypedValue;
 import android.widget.ImageView;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-import com.rv.pij2021.VUFRB.BlocosRA;
+import com.rv.pij2021.VUFRB.DecisaoBlocosRA;
 import com.rv.pij2021.VUFRB.CustomRectF;
 import com.rv.pij2021.VUFRB.GerencieGeoLocalizacao;
 import com.rv.pij2021.VUFRB.R;
-import com.rv.pij2021.VUFRB.tflite.env.BorderedText;
 import com.rv.pij2021.VUFRB.tflite.env.ImageUtils;
 import com.rv.pij2021.VUFRB.tflite.lib_task_api.Detector;
 
 /** A tracker that handles non-max suppression and matches existing objects to new detections. */
 public class MultiBoxTracker {
-  private BlocosRA blocosRA = new BlocosRA();
+  private DecisaoBlocosRA decisaoBlocosRA = new DecisaoBlocosRA();
   private GerencieGeoLocalizacao gerencieGeoLocalizacao;
 
   private static final int[] COLORS = {
@@ -146,7 +142,7 @@ public class MultiBoxTracker {
     //Log.i("RAUFRB", "3° MultiBoxTracker.processResults()");
 
     trackedObjects.clear();
-    final List<Pair<Float, Detector.Recognition>> rectsToTrack = new LinkedList<Pair<Float, Detector.Recognition>>();
+    //final List<Pair<Float, Detector.Recognition>> rectsToTrack = new LinkedList<Pair<Float, Detector.Recognition>>();
 
     screenRects.clear();
     final Matrix rgbFrameToScreen = new Matrix(getFrameToCanvasMatrix()); //possivelmente, a referencia está sendo modificada. Mas não tenho certeza.
@@ -166,19 +162,21 @@ public class MultiBoxTracker {
         continue;
       }
 
-      rectsToTrack.add(new Pair<Float, Detector.Recognition>(result.getConfidence(), result));
+      Pair<Float, Detector.Recognition> potential = new Pair<Float, Detector.Recognition>(result.getConfidence(), result);
+      final TrackedRecognition trackedRecognition = new TrackedRecognition();
+      trackedRecognition.detectionConfidence = potential.first;
+      trackedRecognition.location = new RectF(potential.second.getLocation());
+      trackedRecognition.imgId = decisaoBlocosRA.imgId(gerencieGeoLocalizacao.latitude, gerencieGeoLocalizacao.longitude);
+      trackedRecognition.color = COLORS[trackedObjects.size()];
+      trackedObjects.add(trackedRecognition);
+
+      //gerencieGeoLocalizacao.updateOrientationAngles();
+      //rectsToTrack.add(new Pair<Float, Detector.Recognition>(result.getConfidence(), result));
 
       break;
     }
 
-    for (final Pair<Float, Detector.Recognition> potential : rectsToTrack) {
-      final TrackedRecognition trackedRecognition = new TrackedRecognition();
-      trackedRecognition.detectionConfidence = potential.first;
-      trackedRecognition.location = new RectF(potential.second.getLocation());
-      trackedRecognition.imgId = blocosRA.imgId(gerencieGeoLocalizacao.latitude, gerencieGeoLocalizacao.longitude);
-      trackedRecognition.color = COLORS[trackedObjects.size()];
-      trackedObjects.add(trackedRecognition);
-    }
+
   }
 
   public static class TrackedRecognition {

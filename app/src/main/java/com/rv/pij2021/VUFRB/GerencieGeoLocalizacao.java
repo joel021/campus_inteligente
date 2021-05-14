@@ -21,7 +21,12 @@ import android.util.Log;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 
+import java.util.ArrayList;
+import java.util.List;
 
+/*
+Gerencia os dados de localização de direção do celular (para onde a câmera está apondnando) .
+ */
 public class GerencieGeoLocalizacao implements SensorEventListener {
     private final Activity contextActivity;
     private LocationManager locationManager;
@@ -31,14 +36,15 @@ public class GerencieGeoLocalizacao implements SensorEventListener {
     private final float[] accelerometerReading = new float[3];
     private final float[] magnetometerReading = new float[3];
 
-    private final float[] rotationMatrix = new float[9];
-    private final float[] orientationAngles = new float[3];
+    private List<Float> orientationAngles;
 
     public double latitude, longitude;
 
     public GerencieGeoLocalizacao(Activity contextActivity){
         this.contextActivity = contextActivity;
         sensorManager = (SensorManager) contextActivity.getSystemService(Context.SENSOR_SERVICE);
+        orientationAngles = new ArrayList<>();
+        onResume();
     }
 
     public void getPositionNetwork(){
@@ -56,6 +62,7 @@ public class GerencieGeoLocalizacao implements SensorEventListener {
             return;
         }
 
+        // percebi que raramente se consegue obter dados GPS
         locationListenerGPS = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
@@ -111,8 +118,13 @@ public class GerencieGeoLocalizacao implements SensorEventListener {
     public void onPause(){
 
         if (locationManager != null){
-            locationManager.removeUpdates(locationListenerGPS);
-            locationManager.removeUpdates(locationListenerNet);
+            if (locationListenerGPS != null){
+                locationManager.removeUpdates(locationListenerGPS);
+            }
+
+            if(locationListenerNet != null){
+                locationManager.removeUpdates(locationListenerNet);
+            }
         }
 
         sensorManager.unregisterListener(this);
@@ -123,7 +135,6 @@ public class GerencieGeoLocalizacao implements SensorEventListener {
         // Do something here if sensor accuracy changes.
         // You must implement this callback in your code.
     }
-
 
     public void onResume() {
 
@@ -148,6 +159,7 @@ public class GerencieGeoLocalizacao implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             System.arraycopy(event.values, 0, accelerometerReading,
                     0, accelerometerReading.length);
@@ -155,20 +167,59 @@ public class GerencieGeoLocalizacao implements SensorEventListener {
             System.arraycopy(event.values, 0, magnetometerReading,
                     0, magnetometerReading.length);
         }
+
+        updateOrientationAngles();
     }
 
     // Compute the three orientation angles based on the most recent readings from
     // the device's accelerometer and magnetometer.
-    public void updateOrientationAngles() {
+    public float updateOrientationAngles() {
         // Update rotation matrix, which is needed to update orientation angles.
-        SensorManager.getRotationMatrix(rotationMatrix, null,
-                accelerometerReading, magnetometerReading);
+        float[] rotationMatrix = new float[9];
 
-        // "mRotationMatrix" now has up-to-date information.
+        if(!SensorManager.getRotationMatrix(rotationMatrix, null, accelerometerReading, magnetometerReading)){
+            if (orientationAngles.isEmpty())
+                return 0;
+            return orientationAngles.get(orientationAngles.size()-1);
+        }
 
-        SensorManager.getOrientation(rotationMatrix, orientationAngles);
+        float[] orientationAnglesVetor = new float[3];
+        SensorManager.getOrientation(rotationMatrix, orientationAnglesVetor);
+        rotationMatrix = null;
 
         // "mOrientationAngles" now has up-to-date information.
+
+        double azimuth = overageMoving(orientationAnglesVetor[0]);
+
+        azimuth = 90 * azimuth;
+        Log.i("RAUFRB", azimuth+"");
+        return (float) azimuth;
+    }
+
+    private float overageMoving(float orientationAngle){
+
+        if (orientationAngles.size() >= 20){
+            orientationAngles.set(0,orientationAngle);
+        }else{
+            orientationAngles.add(orientationAngle);
+        }
+
+        //float[] movingAverage = new float[9];
+        float[] cumsum = new float[orientationAngles.size()+1];
+
+        cumsum[0] = 0;
+        for(int i = 0; i < orientationAngles.size(); i++){
+
+            cumsum[i+1] = cumsum[i] + orientationAngles.get(i);
+
+            // 5 é o tamanho do moving average
+            if (i >= 5){
+                float value = (cumsum[i] - cumsum[i-5])/5;
+                orientationAngles.set(i,value);
+            }
+        }
+
+        return orientationAngles.get(orientationAngles.size()-1);
     }
 
 }

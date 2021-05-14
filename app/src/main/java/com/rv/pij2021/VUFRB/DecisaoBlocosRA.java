@@ -3,11 +3,11 @@ package com.rv.pij2021.VUFRB;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BlocosRA {
+public class DecisaoBlocosRA {
 
     List<BlocoRA> blocoList = new ArrayList<>();
 
-    public BlocosRA(){
+    public DecisaoBlocosRA(){
 
         // adicionar os dados já ordenados
         blocoList.add(new BlocoRA( new Ponto(-12.659766398168875,-39.08881134641973), new Ponto(-12.658567831849457,-39.08881134641973), "REITORIA UFRB", R.drawable.reitoria));

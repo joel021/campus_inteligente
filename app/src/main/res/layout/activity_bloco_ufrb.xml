@@ -18,8 +18,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
+
+            <ProgressBar
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/progressBarImageViewBlocoUFRB"/>
             <ImageView
-                android:src="@drawable/pav_i"
                 android:id="@+id/imageViewBlocoUFRB"
                 android:layout_width="316dp"
                 android:layout_height="480dp"
@@ -29,7 +33,6 @@
                 android:layout_marginEnd="0dp" />
 
             <ImageView
-                android:src="@drawable/pav_i"
                 android:id="@+id/imageViewRAShow"
                 android:layout_width="100dp"
                 android:layout_height="100dp"

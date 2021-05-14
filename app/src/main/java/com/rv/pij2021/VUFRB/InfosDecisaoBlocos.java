@@ -2,10 +2,10 @@ package com.rv.pij2021.VUFRB;
 
 import java.util.HashMap;
 
-public class InfosBlocos extends BlocosRA {
+public class InfosDecisaoBlocos extends DecisaoBlocosRA {
     public HashMap<String, BlocoInfo> infos;
 
-    public InfosBlocos(){
+    public InfosDecisaoBlocos(){
         infos = new HashMap<>();
         infos.put("REITORIA UFRB", new BlocoInfo("Local dos administradores.", "Fechada", "7:00h","18:00h"));
         infos.put("PAV I", new BlocoInfo("Pavilhão de aulas de disciplinas majoritariamente de exatas.", "Fechada", "7:00h","18:00h"));

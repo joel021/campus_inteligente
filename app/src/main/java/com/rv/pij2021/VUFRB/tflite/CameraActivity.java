@@ -78,7 +78,6 @@ public abstract class CameraActivity extends AppCompatActivity
 
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
-    Log.i("RAUFRB","CameraActivity.onCreate()");
     super.onCreate(null);
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -101,11 +100,19 @@ public abstract class CameraActivity extends AppCompatActivity
       @Override
       public void onClick(View v) {
         savePreviewBitmap();
+
+        if (trackedPos.right < 16.0){
+          return;
+        }
+
         Intent i = new Intent(CameraActivity.this, BlocoUFRBActivity.class);
-        i.putExtra("lat",   gerencieGeoLocalizacao.latitude);
+
+        // Dados que a poroxima activity precisa receber
+
+        i.putExtra("lat",  gerencieGeoLocalizacao.latitude);
         i.putExtra("lon", gerencieGeoLocalizacao.longitude);
         i.putExtra("left", trackedPos.left);
-        i.putExtra("top",trackedPos.top);
+        i.putExtra("top", trackedPos.top);
         i.putExtra("right",trackedPos.right);
         i.putExtra("bottom",trackedPos.bottom);
         i.putExtra("width", trackedPos.width);
@@ -115,7 +122,6 @@ public abstract class CameraActivity extends AppCompatActivity
       }
     });
   }
-
 
   protected int[] getRgbBytes() {
     imageConverter.run();
