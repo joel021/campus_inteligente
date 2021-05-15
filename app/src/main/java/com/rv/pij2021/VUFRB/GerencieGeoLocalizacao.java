@@ -138,19 +138,7 @@ public class GerencieGeoLocalizacao implements SensorEventListener {
 
     public void onResume() {
 
-        // Get updates from the accelerometer and magnetometer at a constant rate.
-        // To make batch operations more efficient and reduce power consumption,
-        // provide support for delaying updates to the application.
-        //
-        // In this example, the sensor reporting delay is small enough such that
-        // the application receives an update before the system checks the sensor
-        // readings again.
-        Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        if (accelerometer != null) {
-            sensorManager.registerListener(this, accelerometer,
-                    SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL);
-        }
-        Sensor magneticField = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        Sensor magneticField = sensorManager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR);
         if (magneticField != null) {
             sensorManager.registerListener(this, magneticField,
                     SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL);
@@ -160,10 +148,7 @@ public class GerencieGeoLocalizacao implements SensorEventListener {
     @Override
     public void onSensorChanged(SensorEvent event) {
 
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            System.arraycopy(event.values, 0, accelerometerReading,
-                    0, accelerometerReading.length);
-        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+        if (event.sensor.getType() == Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR) {//melhor: TYPE_GEOMAGNETIC_ROTATION_VECTOR
             System.arraycopy(event.values, 0, magnetometerReading,
                     0, magnetometerReading.length);
         }
@@ -174,26 +159,9 @@ public class GerencieGeoLocalizacao implements SensorEventListener {
     // Compute the three orientation angles based on the most recent readings from
     // the device's accelerometer and magnetometer.
     public float updateOrientationAngles() {
-        // Update rotation matrix, which is needed to update orientation angles.
-        float[] rotationMatrix = new float[9];
 
-        if(!SensorManager.getRotationMatrix(rotationMatrix, null, accelerometerReading, magnetometerReading)){
-            if (orientationAngles.isEmpty())
-                return 0;
-            return orientationAngles.get(orientationAngles.size()-1);
-        }
-
-        float[] orientationAnglesVetor = new float[3];
-        SensorManager.getOrientation(rotationMatrix, orientationAnglesVetor);
-        rotationMatrix = null;
-
-        // "mOrientationAngles" now has up-to-date information.
-
-        double azimuth = overageMoving(orientationAnglesVetor[0]);
-
-        azimuth = 90 * azimuth;
-        Log.i("RAUFRB", azimuth+"");
-        return (float) azimuth;
+        Log.i("RAUFRB", magnetometerReading[0]+" "+magnetometerReading[1]+" "+magnetometerReading[2]);
+        return (float) magnetometerReading[0];
     }
 
     private float overageMoving(float orientationAngle){
