@@ -166,7 +166,7 @@ public class MultiBoxTracker {
       final TrackedRecognition trackedRecognition = new TrackedRecognition();
       trackedRecognition.detectionConfidence = potential.first;
       trackedRecognition.location = new RectF(potential.second.getLocation());
-      trackedRecognition.imgId = decisaoBlocosRA.imgId(gerencieGeoLocalizacao.latitude, gerencieGeoLocalizacao.longitude);
+      trackedRecognition.imgId = decisaoBlocosRA.bloco(gerencieGeoLocalizacao).imgId;
       trackedRecognition.color = COLORS[trackedObjects.size()];
       trackedObjects.add(trackedRecognition);
 

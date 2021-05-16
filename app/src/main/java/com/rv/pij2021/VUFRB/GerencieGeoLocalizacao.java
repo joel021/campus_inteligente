@@ -33,17 +33,15 @@ public class GerencieGeoLocalizacao implements SensorEventListener {
     private LocationListener locationListenerGPS, locationListenerNet;
 
     private SensorManager sensorManager;
-    private final float[] accelerometerReading = new float[3];
     private final float[] magnetometerReading = new float[3];
 
-    private List<Float> orientationAngles;
-
     public double latitude, longitude;
+
+    private float xmax = -70f, xmin=70f;
 
     public GerencieGeoLocalizacao(Activity contextActivity){
         this.contextActivity = contextActivity;
         sensorManager = (SensorManager) contextActivity.getSystemService(Context.SENSOR_SERVICE);
-        orientationAngles = new ArrayList<>();
         onResume();
     }
 
@@ -139,6 +137,7 @@ public class GerencieGeoLocalizacao implements SensorEventListener {
     public void onResume() {
 
         Sensor magneticField = sensorManager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR);
+
         if (magneticField != null) {
             sensorManager.registerListener(this, magneticField,
                     SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL);
@@ -153,41 +152,23 @@ public class GerencieGeoLocalizacao implements SensorEventListener {
                     0, magnetometerReading.length);
         }
 
-        updateOrientationAngles();
-    }
-
-    // Compute the three orientation angles based on the most recent readings from
-    // the device's accelerometer and magnetometer.
-    public float updateOrientationAngles() {
-
-        Log.i("RAUFRB", magnetometerReading[0]+" "+magnetometerReading[1]+" "+magnetometerReading[2]);
-        return (float) magnetometerReading[0];
-    }
-
-    private float overageMoving(float orientationAngle){
-
-        if (orientationAngles.size() >= 20){
-            orientationAngles.set(0,orientationAngle);
-        }else{
-            orientationAngles.add(orientationAngle);
+        if (xmax < magnetometerReading[1]){
+            xmax = magnetometerReading[1];
         }
 
-        //float[] movingAverage = new float[9];
-        float[] cumsum = new float[orientationAngles.size()+1];
-
-        cumsum[0] = 0;
-        for(int i = 0; i < orientationAngles.size(); i++){
-
-            cumsum[i+1] = cumsum[i] + orientationAngles.get(i);
-
-            // 5 é o tamanho do moving average
-            if (i >= 5){
-                float value = (cumsum[i] - cumsum[i-5])/5;
-                orientationAngles.set(i,value);
-            }
+        if (xmin > magnetometerReading[1]){
+            xmin = magnetometerReading[1];
         }
+    }
 
-        return orientationAngles.get(orientationAngles.size()-1);
+    // obtém o valor do angulo que o eixo perpendicular a tela do dispotivo está em relação ao norte
+    public double getTheta(){
+
+        // mapeia o valor de x para entre -1 e 1
+        float a = 2.0f/(xmax-xmin);
+        float b = 1.0f-a*xmax;
+
+        return 2*Math.asin(a*magnetometerReading[1]+b);
     }
 
 }
