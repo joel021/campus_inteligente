@@ -67,4 +67,25 @@ public class DecisaoBlocosRA {
 
     }
 
+    public BlocoRA bloco(double latitude, double longitude, double theta){
+
+        for (BlocoRA blocoRA : blocoList){
+
+            // a priori, sabe-se que aresta1 <= aresta2, sempre!
+            if (blocoRA.aresta1.lat <= latitude && blocoRA.aresta2.lat > latitude && blocoRA.aresta1.lon <= longitude && blocoRA.aresta2.lon >= longitude){
+
+                //double[] r = {blocoRA.p0.lat-gerencieGeoLocalizacao.latitude, blocoRA.p0.lon-gerencieGeoLocalizacao.longitude};
+                double phi = Math.atan((blocoRA.p0.lon-longitude)/(blocoRA.p0.lat-latitude));
+
+                if (Math.abs(phi-theta) <= 0.174533){ // 10° de tolerancia
+                    return blocoRA;
+                }
+            }
+
+        }
+
+        return new BlocoRA(null,null,null,"Desconhecido",R.drawable.campus_inteligente);
+
+    }
+
 }

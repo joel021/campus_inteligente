@@ -37,10 +37,10 @@ public class BlocoUFRBActivity extends AppCompatActivity {
 
         double lat = getIntent().getDoubleExtra("lat", 0);
         double lon = getIntent().getDoubleExtra("lon", 0);
+        double theta = getIntent().getDoubleExtra("theta", 0);
 
-        blocoRA = new DecisaoBlocosRA().bloco(lat, lon);
+        blocoRA = new DecisaoBlocosRA().bloco(lat, lon, theta);
         infoBloco = (new InfosDecisaoBlocos()).infos.get(blocoRA.titulo);
-
     }
 
     @Override

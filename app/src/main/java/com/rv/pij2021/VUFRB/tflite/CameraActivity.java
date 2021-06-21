@@ -117,6 +117,7 @@ public abstract class CameraActivity extends AppCompatActivity
         i.putExtra("bottom",trackedPos.bottom);
         i.putExtra("width", trackedPos.width);
         i.putExtra("height", trackedPos.height);
+        i.putExtra("theta", gerencieGeoLocalizacao.getTheta());
 
         startActivity(i);
       }
