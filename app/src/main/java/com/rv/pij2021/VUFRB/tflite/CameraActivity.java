@@ -21,7 +21,6 @@ import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.RectF;
 import android.hardware.Camera;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
@@ -41,16 +40,15 @@ import android.util.Size;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import com.rv.pij2021.VUFRB.BlocoUFRBActivity;
-import com.rv.pij2021.VUFRB.CustomRectF;
-import com.rv.pij2021.VUFRB.GerencieGeoLocalizacao;
+import com.rv.pij2021.VUFRB.BlockUFRBActivity;
+import com.rv.pij2021.VUFRB.model.CustomRectF;
+import com.rv.pij2021.VUFRB.service.SensorService;
 import com.rv.pij2021.VUFRB.R;
 import com.rv.pij2021.VUFRB.tflite.env.ImageUtils;
 
@@ -73,7 +71,7 @@ public abstract class CameraActivity extends AppCompatActivity
   private Runnable postInferenceCallback;
   private Runnable imageConverter;
   public ImageView imageViewRA;
-  public GerencieGeoLocalizacao gerencieGeoLocalizacao;
+  public SensorService sensorService;
   public CustomRectF trackedPos;
 
   @Override
@@ -105,19 +103,19 @@ public abstract class CameraActivity extends AppCompatActivity
           return;
         }
 
-        Intent i = new Intent(CameraActivity.this, BlocoUFRBActivity.class);
+        Intent i = new Intent(CameraActivity.this, BlockUFRBActivity.class);
 
         // Dados que a poroxima activity precisa receber
 
-        i.putExtra("lat",  gerencieGeoLocalizacao.latitude);
-        i.putExtra("lon", gerencieGeoLocalizacao.longitude);
+        i.putExtra("lat",  sensorService.latitude);
+        i.putExtra("lon", sensorService.longitude);
         i.putExtra("left", trackedPos.left);
         i.putExtra("top", trackedPos.top);
         i.putExtra("right",trackedPos.right);
         i.putExtra("bottom",trackedPos.bottom);
         i.putExtra("width", trackedPos.width);
         i.putExtra("height", trackedPos.height);
-        i.putExtra("theta", gerencieGeoLocalizacao.getTheta());
+        i.putExtra("theta", sensorService.getTheta());
 
         startActivity(i);
       }
@@ -258,8 +256,8 @@ public abstract class CameraActivity extends AppCompatActivity
     handlerThread.start();
     handler = new Handler(handlerThread.getLooper());
 
-    gerencieGeoLocalizacao = new GerencieGeoLocalizacao(this);
-    gerencieGeoLocalizacao.getPositionNetwork();
+    sensorService = new SensorService(this);
+    sensorService.onResume();
   }
 
   @Override
@@ -274,7 +272,7 @@ public abstract class CameraActivity extends AppCompatActivity
       //Log.e("RAUFRB", "ERRO: "+e);
     }
 
-    gerencieGeoLocalizacao.onPause();
+    sensorService.onPause();
     super.onPause();
   }
 
@@ -337,11 +335,10 @@ public abstract class CameraActivity extends AppCompatActivity
               shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
         Toast.makeText(
                 CameraActivity.this,
-                "Camera permission is required for this demo",
+                "Camera permission is required",
                 Toast.LENGTH_LONG)
             .show();
       }
-
 
       requestPermissions(new String[] {Manifest.permission.CAMERA, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
     }

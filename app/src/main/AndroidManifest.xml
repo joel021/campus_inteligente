@@ -22,7 +22,7 @@
         android:theme="@style/Theme.VUFRB">
 
         <activity
-            android:name=".BlocoUFRBActivity"
+            android:name=".BlockUFRBActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:label="@string/title_activity_infomacao"/>
 

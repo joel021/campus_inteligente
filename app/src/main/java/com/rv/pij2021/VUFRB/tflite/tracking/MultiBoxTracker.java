@@ -30,17 +30,17 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-import com.rv.pij2021.VUFRB.DecisaoBlocosRA;
-import com.rv.pij2021.VUFRB.CustomRectF;
-import com.rv.pij2021.VUFRB.GerencieGeoLocalizacao;
+import com.rv.pij2021.VUFRB.service.DecisionBlocksRA;
+import com.rv.pij2021.VUFRB.model.CustomRectF;
+import com.rv.pij2021.VUFRB.service.SensorService;
 import com.rv.pij2021.VUFRB.R;
 import com.rv.pij2021.VUFRB.tflite.env.ImageUtils;
 import com.rv.pij2021.VUFRB.tflite.lib_task_api.Detector;
 
 /** A tracker that handles non-max suppression and matches existing objects to new detections. */
 public class MultiBoxTracker {
-  private DecisaoBlocosRA decisaoBlocosRA = new DecisaoBlocosRA();
-  private GerencieGeoLocalizacao gerencieGeoLocalizacao;
+  private final DecisionBlocksRA decisionBlocksRA = new DecisionBlocksRA();
+  private SensorService sensorService;
 
   private static final int[] COLORS = {
          R.color.amarelo_ufrb,
@@ -50,7 +50,7 @@ public class MultiBoxTracker {
 
   final List<Pair<Float, RectF>> screenRects = new LinkedList<Pair<Float, RectF>>();
   private final Queue<Integer> availableColors = new LinkedList<Integer>();
-  public final List<TrackedRecognition> trackedObjects = new LinkedList<TrackedRecognition>();
+  public TrackedRecognition trackedObject = null;
   private final Paint boxPaint = new Paint();
   //private final float textSizePx;
   //private final BorderedText borderedText;
@@ -59,9 +59,9 @@ public class MultiBoxTracker {
   private int frameHeight;
   private int sensorOrientation;
 
-  public MultiBoxTracker(GerencieGeoLocalizacao gerencieGeoLocalizacao) {
+  public MultiBoxTracker(SensorService sensorService) {
 
-    this.gerencieGeoLocalizacao = gerencieGeoLocalizacao;
+    this.sensorService = sensorService;
 
     for (final int color : COLORS) {
       availableColors.add(color);
@@ -79,8 +79,7 @@ public class MultiBoxTracker {
   }
 
 
-  public synchronized void setFrameConfiguration(
-      final int width, final int height, final int sensorOrientation) {
+  public synchronized void setFrameConfiguration(final int width, final int height, final int sensorOrientation) {
     frameWidth = width;
     frameHeight = height;
     this.sensorOrientation = sensorOrientation;
@@ -95,53 +94,58 @@ public class MultiBoxTracker {
     return frameToCanvasMatrix;
   }
 
+  // desenha os retangulos na tela.
   public synchronized void draw(final Canvas canvas, ImageView imageViewRA, CustomRectF trackedPos) {
-
+    // modificar trackedPos permite enviar os dados para as outras classes que chamam draw(). No caso, a DetectorActivity.
     imageViewRA.setImageBitmap(null);
+    if(trackedObject == null){
+      return;
+    }
 
     final boolean rotated = sensorOrientation % 180 == 90;
     final float multiplier =
-        Math.min(
-            canvas.getHeight() / (float) (rotated ? frameWidth : frameHeight),
-            canvas.getWidth() / (float) (rotated ? frameHeight : frameWidth));
+            Math.min(
+                    canvas.getHeight() / (float) (rotated ? frameWidth : frameHeight),
+                    canvas.getWidth() / (float) (rotated ? frameHeight : frameWidth));
 
     int w = (int) (multiplier * (rotated ? frameHeight : frameWidth));
     int h =  (int) (multiplier * (rotated ? frameWidth : frameHeight));
     frameToCanvasMatrix =
-        ImageUtils.getTransformationMatrix(
-            frameWidth,
-            frameHeight,
-                w,
-                h,
-            sensorOrientation,
-            false);
+            ImageUtils.getTransformationMatrix(
+                    frameWidth,
+                    frameHeight,
+                    w,
+                    h,
+                    sensorOrientation,
+                    false);
 
-    for (final TrackedRecognition recognition : trackedObjects) {
 
-      trackedPos.set(recognition.location);
-      getFrameToCanvasMatrix().mapRect(trackedPos);
-
-      trackedPos.width = w;
-      trackedPos.height = h;
-      boxPaint.setColor(recognition.color);
-
-      float cornerSize = Math.min(trackedPos.width(), trackedPos.height()) / 8.0f;
-      canvas.drawRoundRect(trackedPos, cornerSize, cornerSize, boxPaint);
-
-      imageViewRA.setImageResource(recognition.imgId);
-      imageViewRA.setX(trackedPos.left);
-      imageViewRA.setY(trackedPos.top);
-
-      //final String labelString = String.format("%s %.2f", recognition.title, (100 * recognition.detectionConfidence));
-      //borderedText.drawText(canvas, trackedPos.left + cornerSize, trackedPos.top, labelString + "%", boxPaint);
-
+    if(trackedObject.location != null){
+      trackedPos.set(trackedObject.location);
+    }else{
+      trackedObject.location = trackedPos;
     }
+
+    getFrameToCanvasMatrix().mapRect(trackedPos);
+
+    trackedPos.width = w; // tamanho do frame
+    trackedPos.height = h; // tamanho do frame
+    boxPaint.setColor(trackedObject.color);
+    float cornerSize = Math.min(trackedPos.width(), trackedPos.height()) / 8.0f;
+    canvas.drawRoundRect(trackedPos, cornerSize, cornerSize, boxPaint);
+
+    imageViewRA.setImageResource(trackedObject.imgId);
+    imageViewRA.setX(trackedPos.left);
+    imageViewRA.setY(trackedPos.top);
+
+    //final String labelString = String.format("%s %.2f", recognition.title, (100 * recognition.detectionConfidence));
+    //borderedText.drawText(canvas, trackedPos.left + cornerSize, trackedPos.top, labelString + "%", boxPaint);
   }
 
   private void processResults(final List<Detector.Recognition> results) {
     //Log.i("RAUFRB", "3° MultiBoxTracker.processResults()");
 
-    trackedObjects.clear();
+    trackedObject.location = null;
     //final List<Pair<Float, Detector.Recognition>> rectsToTrack = new LinkedList<Pair<Float, Detector.Recognition>>();
 
     screenRects.clear();
@@ -163,12 +167,11 @@ public class MultiBoxTracker {
       }
 
       Pair<Float, Detector.Recognition> potential = new Pair<Float, Detector.Recognition>(result.getConfidence(), result);
-      final TrackedRecognition trackedRecognition = new TrackedRecognition();
-      trackedRecognition.detectionConfidence = potential.first;
-      trackedRecognition.location = new RectF(potential.second.getLocation());
-      trackedRecognition.imgId = decisaoBlocosRA.bloco(gerencieGeoLocalizacao).imgId;
-      trackedRecognition.color = COLORS[trackedObjects.size()];
-      trackedObjects.add(trackedRecognition);
+      trackedObject = new TrackedRecognition();
+      trackedObject.detectionConfidence = potential.first;
+      trackedObject.location = new RectF(potential.second.getLocation());
+      trackedObject.imgId = decisionBlocksRA.bloco(sensorService).imgId;
+      trackedObject.color = COLORS[0];
 
       //gerencieGeoLocalizacao.updateOrientationAngles();
       //rectsToTrack.add(new Pair<Float, Detector.Recognition>(result.getConfidence(), result));

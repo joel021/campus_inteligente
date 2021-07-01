@@ -31,6 +31,8 @@ import android.util.TypedValue;
 import android.widget.Toast;
 
 import com.rv.pij2021.VUFRB.R;
+import com.rv.pij2021.VUFRB.model.CustomRectF;
+import com.rv.pij2021.VUFRB.service.DecisionBlocksRA;
 import com.rv.pij2021.VUFRB.tflite.env.ImageUtils;
 import com.rv.pij2021.VUFRB.tflite.lib_task_api.Detector;
 import com.rv.pij2021.VUFRB.tflite.lib_task_api.TFLiteObjectDetectionAPIModel;
@@ -56,7 +58,9 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
   private static final float MINIMUM_CONFIDENCE_TF_OD_API = 0.2f;
   private static final boolean MAINTAIN_ASPECT = false;
   private static final Size DESIRED_PREVIEW_SIZE = new Size(320, 480);
-  private static final float TEXT_SIZE_DIP = 10;
+
+  public boolean inference = true;
+
   OverlayView trackingOverlay;
   private Integer sensorOrientation;
 
@@ -74,18 +78,18 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
   private MultiBoxTracker tracker;
 
   private BorderedText borderedText;
-
+  private Detector.Recognition result;
   @Override
   public void onPreviewSizeChosen(final Size size, final int rotation) {
 
     //Log.i("RAUFRB","DetectorActivity.onPreviewSizeChosen()");
     final float textSizePx =
         TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_DIP, getResources().getDisplayMetrics());
+            TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics());
     borderedText = new BorderedText(textSizePx);
     borderedText.setTypeface(Typeface.MONOSPACE);
 
-    tracker = new MultiBoxTracker(gerencieGeoLocalizacao);
+    tracker = new MultiBoxTracker(sensorService);
 
     int cropSize = TF_OD_API_INPUT_SIZE;
 
@@ -128,7 +132,15 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
         new DrawCallback() {
           @Override
           public void drawCallback(final Canvas canvas) {
-            tracker.draw(canvas, imageViewRA, trackedPos);
+
+            // Ao chave ou não draw ao invés de destruir e reconstruir a thread toda vez que
+            // precisar desativar e ativar a inferência. Destruia e reconstrua apenas quando a tela
+            // for fechada e aberta novamente.
+            if(inference){
+              // trackedPos é uma passagem por referência.
+              tracker.draw(canvas, imageViewRA, trackedPos);
+            }
+
           }
         });
 
@@ -148,7 +160,6 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
       return;
     }
     computingDetection = true;
-    //Log.i("RAUFRB","Preparing image for detection in bg thread.");
 
     rgbFrameBitmap.setPixels(getRgbBytes(), 0, previewWidth, 0, 0, previewWidth, previewHeight);
 
@@ -156,41 +167,115 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
 
     final Canvas canvas = new Canvas(croppedBitmap);
     canvas.drawBitmap(rgbFrameBitmap, frameToCropTransform, null);
-    // For examining the actual TF input.
+    if(inference){
+      rectByInference();
+    }else{
+      rectBySensor();
+    }
+
+  }
+  private void rectBySensor(){
 
     runInBackground(
-        new Runnable() {
-          @Override
-          public void run() {
+            new Runnable() {
+              @Override
+              public void run() {
 
-            final List<Detector.Recognition> results = detector.recognizeImage(croppedBitmap);
+                // result tem que ser diferente de nulo
+                // tem que ter acontecido pelo menos uma inferencia por detector
+                // para pegar as posições dos thetas
+                if(result == null){
+                  computingDetection = false;
+                  return;
+                }
 
-            cropCopyBitmap = Bitmap.createBitmap(croppedBitmap);
-            final Canvas canvas = new Canvas(cropCopyBitmap);
-            final Paint paint = new Paint();
-            paint.setColor(Color.RED);
-            paint.setStyle(Style.STROKE);
-            paint.setStrokeWidth(2.0f);
+                // calculate left, right, top and bottom of rect by sensor.
+                // já existiu uma detecção e o objeto está em área de visão...
+                double theta = sensorService.getTheta();
+                DecisionBlocksRA decisionBlocksRA = new DecisionBlocksRA();
+                DecisionBlocksRA.BlocoRA blocoRA = decisionBlocksRA.bloco(sensorService.longitude, sensorService.latitude, theta);
+                double r = sensorService.getR(blocoRA.p0.getLon(), blocoRA.p0.getLat());
 
+                float deltaY = (float) ((sensorService.getPhi()-trackedPos.phi0)*r*1); // y = y - deltaAcc*r*alpha, alpha é um número positivo a ser ajustado
+                CustomRectF location = result.getLocation();
+                location.top = location.top - deltaY;
+                location.bottom = location.bottom - deltaY;
 
-            final List<Detector.Recognition> mappedRecognitions = new ArrayList<Detector.Recognition>();
-
-            for (final Detector.Recognition result : results) {
-              final RectF location = result.getLocation();
-              if (location != null && result.getConfidence() >= MINIMUM_CONFIDENCE_TF_OD_API) {
-                canvas.drawRect(location, paint);
-
-                cropToFrameTransform.mapRect(location);
+                float deltaX = (float) ((theta - trackedPos.theta0)*r*1);
+                location.left = location.left + deltaX;
+                location.right = location.right + deltaX;
 
                 result.setLocation(location);
+
+                // finaliza a atualização da posição
+
+                // inciar os preparos para o desenho
+
+                cropCopyBitmap = Bitmap.createBitmap(croppedBitmap);
+                final Canvas canvas = new Canvas(cropCopyBitmap);
+                final Paint paint = new Paint();
+                paint.setColor(Color.RED);
+                paint.setStyle(Style.STROKE);
+                paint.setStrokeWidth(2.0f);
+
+                final List<Detector.Recognition> mappedRecognitions = new ArrayList<Detector.Recognition>();
+
+                canvas.drawRect(result.getLocation(), paint);
+
+                cropToFrameTransform.mapRect(result.getLocation());
                 mappedRecognitions.add(result);
+
+                tracker.trackResults(mappedRecognitions);
+                trackingOverlay.postInvalidate();
+
+                computingDetection = false;
               }
-            }
+            });
 
-            tracker.trackResults(mappedRecognitions);
-            trackingOverlay.postInvalidate();
+  }
+  private void rectByInference(){
+    runInBackground(
+            new Runnable() {
+              @Override
+              public void run() {
 
-            computingDetection = false;
+                final List<Detector.Recognition> results = detector.recognizeImage(croppedBitmap);
+
+                cropCopyBitmap = Bitmap.createBitmap(croppedBitmap);
+                final Canvas canvas = new Canvas(cropCopyBitmap);
+                final Paint paint = new Paint();
+                paint.setColor(Color.RED);
+                paint.setStyle(Style.STROKE);
+                paint.setStrokeWidth(2.0f);
+
+                final List<Detector.Recognition> mappedRecognitions = new ArrayList<Detector.Recognition>();
+
+                for (final Detector.Recognition result0 : results) {
+                  CustomRectF location = result0.getLocation();
+                  location.setPhi0(sensorService.getPhi());
+                  location.setTheta0(sensorService.getTheta());
+                  if (location != null && result0.getConfidence() >= MINIMUM_CONFIDENCE_TF_OD_API) {
+                    canvas.drawRect(location, paint);
+
+                    cropToFrameTransform.mapRect(location);
+
+                    result0.setLocation(location);
+                    mappedRecognitions.add(result0);
+
+                    result = result0;
+
+                    // a certeza é alta, então o objeto na tela será conduzido por meio
+                    // de dados de sensores
+                    if (result0.getConfidence() >= 0.5){
+                      inference = false;
+                    }
+                  }
+                }
+
+                tracker.trackResults(mappedRecognitions);
+                trackingOverlay.postInvalidate();
+
+                computingDetection = false;
 
             /*
             runOnUiThread(
@@ -204,8 +289,8 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
 
              });
            */
-          }
-        });
+              }
+            });
   }
 
   @Override

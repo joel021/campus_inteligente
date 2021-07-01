@@ -18,6 +18,8 @@ package com.rv.pij2021.VUFRB.tflite.lib_task_api;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 
+import com.rv.pij2021.VUFRB.model.CustomRectF;
+
 import java.util.List;
 
 /** Generic interface for interacting with different recognition engines. */
@@ -43,10 +45,10 @@ public interface Detector {
     private final Float confidence;
 
     /** Optional location within the source image for the location of the recognized object. */
-    private RectF location;
+    private CustomRectF location;
 
     public Recognition(
-            final String id, final String title, final Float confidence, final RectF location) {
+            final String id, final String title, final Float confidence, final CustomRectF location) {
       this.id = id;
       this.title = title;
       this.confidence = confidence;
@@ -65,11 +67,11 @@ public interface Detector {
       return confidence;
     }
 
-    public RectF getLocation() {
-      return new RectF(location);
+    public CustomRectF getLocation() {
+      return new CustomRectF(location);
     }
 
-    public void setLocation(RectF location) {
+    public void setLocation(CustomRectF location) {
       this.location = location;
     }
 
