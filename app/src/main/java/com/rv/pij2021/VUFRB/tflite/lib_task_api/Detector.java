@@ -45,10 +45,10 @@ public interface Detector {
     private final Float confidence;
 
     /** Optional location within the source image for the location of the recognized object. */
-    private CustomRectF location;
+    private RectF location;
 
     public Recognition(
-            final String id, final String title, final Float confidence, final CustomRectF location) {
+            final String id, final String title, final Float confidence, final RectF location) {
       this.id = id;
       this.title = title;
       this.confidence = confidence;

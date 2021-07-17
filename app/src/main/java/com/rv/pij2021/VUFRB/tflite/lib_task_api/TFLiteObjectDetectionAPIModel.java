@@ -121,7 +121,6 @@ public class TFLiteObjectDetectionAPIModel implements Detector {
     }
   }
 
-
   private void recreateDetector() {
     objectDetector.close();
     objectDetector = ObjectDetector.createFromBufferAndOptions(modelBuffer, optionsBuilder.build());

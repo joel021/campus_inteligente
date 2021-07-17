@@ -22,7 +22,7 @@ import org.tensorflow.lite.DataType
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 
 /*
-Gerencia os dados de localização de direção do celular (para onde a câmera está apondnando) .
+Gerencia os dados de localização e de direção do celular (para onde a câmera está apontnando) .
  */
 class SensorService(private val contextActivity: Activity) : SensorEventListener {
     private var locationManager: LocationManager? = null
@@ -41,7 +41,6 @@ class SensorService(private val contextActivity: Activity) : SensorEventListener
     @JvmField
     var longitude = -39.193479862331124 // x
 
-    // percebi que raramente se consegue obter dados GPS
     fun positionNetwork() {
 
             Log.i("RAUFRB", "PositionNetwork: ("+latitude+","+latitude);
@@ -114,6 +113,7 @@ class SensorService(private val contextActivity: Activity) : SensorEventListener
     }
 
     fun onResume() {
+        // cadastra o sensor TYPE_GEOMAGNETIC_ROTATION_VECTOR para receber atualizações dele.
         setSesorListener(sensorManager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR))
         setSesorListener(sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER))
 
@@ -122,13 +122,14 @@ class SensorService(private val contextActivity: Activity) : SensorEventListener
         model = Regressor.newInstance(contextActivity)
     }
 
+    // define o Listener dos sensores.
     private fun setSesorListener(sensor: Sensor?) {
         if (sensor != null) {
             sensorManager.registerListener(this, sensor,
                     SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
-
+    // método que recebe as mudanças dos sensores
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type == Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR) { //melhor: TYPE_GEOMAGNETIC_ROTATION_VECTOR
             System.arraycopy(event.values, 0, geomagneticRotationReading,
@@ -139,14 +140,10 @@ class SensorService(private val contextActivity: Activity) : SensorEventListener
         }
 
         updateMax()
-
-
-        val valuesSensor = valuesSensor()
-
-        Log.i("RAUFRB", ""+valuesSensor[4]+","+valuesSensor[5])
     }
 
     // para mapear o valor de x para entre -1 e 1
+    // obtem os valores máximos obtidos pelos sensores
     fun updateMax(){
         for (i in 0..2) {
             if (Math.abs(geomagneticRotationReading[i]) > geomagMax[i]) {
@@ -158,7 +155,9 @@ class SensorService(private val contextActivity: Activity) : SensorEventListener
         }
     }
 
-    // retorna os valores dos sensores em intervalos de -1 a 1
+    // retorna os valores dos sensores em intervalos de -1 a 1. É um vetor de 6 posições.
+    // as 3 primeiras posições (0-2) são referentes ao sensor geomagnetico ou bússula
+    // as 3 ultimas posições são referentes aos dados do sensor acelerômetro
     fun valuesSensor(): FloatArray {
 
         // mapeia o valor de x para entre -1 e 1
@@ -178,10 +177,11 @@ class SensorService(private val contextActivity: Activity) : SensorEventListener
         return values
     }
 
-    // theta é positivo para sentido anti-horário. Theta é um ângulo em relação ao eixo y
+    // theta é positivo para sentido anti-horário. Theta é um ângulo entre o vetor normal à camera do celular e o eixo y
     // o eixo y é o eixo sul-norte
-    // seu intervalo do inference é de -PI a PI por limitações do regressor
-    // o retorno de getTheta é de 0 a PI
+    // seu intervalo obtido na inferencia é de -PI a PI, por limitações do regressor.
+    // o retorno de getTheta é de 0 a 2PI
+    // note que theta está no plano da terra.
     fun getTheta(): Double {
 
         // Creates inputs for reference.
@@ -203,10 +203,14 @@ class SensorService(private val contextActivity: Activity) : SensorEventListener
         sensorManager = contextActivity.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     }
 
+    // R é um número real que é a distância entre o celular e o bloco que está a (lon, lat) == (x,y)
     public fun getR(lon : Float, lat: Float): Double{
         return Math.sqrt(Math.pow(lon-longitude, 2.0)+Math.pow(lat-latitude, 2.0))
     }
 
+    // phi é o angulo entre o vetor normal à câmera do celular e o eixo normal à terra.
+    // Esse eixo normal é paralelo ao vetor direção da gravidade.
+    // phi é equivalente ao angulo entre o eixo z e o raio, de coordenadas esféricas.
     // mapeia valores de -accMax a accMax para 0 a PI
     public fun getPhi(): Double {
         val a = Math.PI/(2*acceMax[2])

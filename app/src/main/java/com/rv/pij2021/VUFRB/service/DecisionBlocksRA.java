@@ -1,14 +1,10 @@
 package com.rv.pij2021.VUFRB.service;
 
-import android.util.Log;
-
 import com.rv.pij2021.VUFRB.R;
 import com.rv.pij2021.VUFRB.model.Point;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static java.lang.Math.sqrt;
 
 public class DecisionBlocksRA {
 
@@ -16,7 +12,6 @@ public class DecisionBlocksRA {
 
     public DecisionBlocksRA(){
 
-        // adicionar os dados já ordenados
         blocoList.add(new BlocoRA(new Point(-12.729291486317871f, -39.184233657393776f), "Sapeaçu", R.drawable.reitoria));
         blocoList.add(new BlocoRA(new Point(-12.659766398168875f,-39.08881134641973f), "REITORIA UFRB", R.drawable.reitoria));
         blocoList.add(new BlocoRA(new Point(-12.659766398168875f,-39.08881134641973f),"PAV I", R.drawable.pav_i));
@@ -50,7 +45,10 @@ public class DecisionBlocksRA {
         }
     }
 
-    // o angulo phi é em relação ao eixo y
+    // recaptulando: os eixos x e y estão paralelos ao elemento infinitesimal do plano paralelo a terra
+    // no ponto de onde o celular está
+    // o eixo z é o eixo que está perpendicular a esse plano infinitesimal.
+    // o angulo phi é em relação ao eixo y (sul->norte)
     // é positivo no sentido antihorário
     // o intervalo dele é entre 0 a 2PI
     private double phi(float x, double x0, float y, double y0){
@@ -68,22 +66,24 @@ public class DecisionBlocksRA {
         return Math.PI - phi;
     }
 
+    // Obtém o nome do possível bloco pela posição do usuário, posição dos blocos cadastrados e dados de sensores.
+    // theta é o angulo que o vetor normal a câmera do celular faz com o norte
     public BlocoRA bloco(SensorService sensorService){
 
         double theta = sensorService.getTheta();
-
-        Log.i("RAUFRB", "theta = "+(theta*180.f/Math.PI));
 
         for (BlocoRA blocoRA : blocoList){
 
             // a priori, sabe-se que aresta1 <= aresta2, sempre!
             if (Math.pow(blocoRA.p0.getLon() - sensorService.longitude,2) + Math.pow(blocoRA.p0.getLat() - sensorService.latitude, 2) - 1 < 0){
-                //Log.i("RAUFRB", "Dentro da área. r^2 = 0.0011191911348022736");
 
-                double phi = phi(blocoRA.p0.getLon(), sensorService.longitude, blocoRA.p0.getLat(), sensorService.latitude);
-                Log.i("RAUFRB", "phi = "+(phi*180.f/Math.PI));
+                double phi_l = phi(blocoRA.p0.getLon(), sensorService.longitude, blocoRA.p0.getLat(), sensorService.latitude);
 
-                if (Math.abs(phi-theta) < 0.18){ // aproximadamente 10° de tolerancia = 0.18
+                double s = Math.abs(phi_l-theta)*sensorService.getR(blocoRA.p0.getLon(),blocoRA.p0.getLat());
+                /*
+                TODO: Deve-se ajusar a tolerancia de "s" com estes reais.
+                 */
+                if (s < 10){ //as posições globais são em metros, 10 representa 10 metros de tolerancia
                     return blocoRA;
                 }
                 break;
@@ -95,16 +95,19 @@ public class DecisionBlocksRA {
 
     }
 
-    public BlocoRA bloco(double longitude, double latitude, double theta){
+    public BlocoRA bloco(double longitude, double latitude, double theta, double r){
 
         for (BlocoRA blocoRA : blocoList){
 
             // a priori, sabe-se que aresta1 <= aresta2, sempre!
             if (Math.pow(blocoRA.p0.getLon() - longitude,2) + Math.pow(blocoRA.p0.getLat() - latitude, 2) - 1 < 0){
 
-                double phi = Math.atan((blocoRA.p0.getLat()- latitude)/(blocoRA.p0.getLon()- longitude));
-
-                if (Math.abs(phi-theta) < 0.18){ // aproximadamente 10° de tolerancia
+                double phi_l = Math.atan((blocoRA.p0.getLat()- latitude)/(blocoRA.p0.getLon()- longitude));
+                double s = Math.abs(phi_l-theta)*r; // s é o arco que se forma pela diferença entre os angulos
+                /*
+                TODO: Deve-se ajusar a tolerancia de "s" com estes reais.
+                 */
+                if (s < 10){ //as posições globais são em metros, 10 representa 10 metros de tolerancia
                     return blocoRA;
                 }
             }

@@ -14,7 +14,10 @@ limitations under the License.
 ==============================================================================*/
 
 package com.rv.pij2021.VUFRB.tflite.tracking;
-
+/*
+Este codigo foi encontrado em: https://github.com/tensorflow/examples/tree/master/lite/examples/object_detection/android
+Permissões Apache License 2.0
+ */
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
@@ -145,12 +148,12 @@ public class MultiBoxTracker {
   private void processResults(final List<Detector.Recognition> results) {
     //Log.i("RAUFRB", "3° MultiBoxTracker.processResults()");
 
-    trackedObject.location = null;
-    //final List<Pair<Float, Detector.Recognition>> rectsToTrack = new LinkedList<Pair<Float, Detector.Recognition>>();
+    trackedObject = null;
 
     screenRects.clear();
-    final Matrix rgbFrameToScreen = new Matrix(getFrameToCanvasMatrix()); //possivelmente, a referencia está sendo modificada. Mas não tenho certeza.
+    final Matrix rgbFrameToScreen = new Matrix(getFrameToCanvasMatrix());
 
+    // buscar por detecções válidas. Nesta aplicçaão, só é considerado uma detecção.
     for (final Detector.Recognition result : results) {
       if (result.getLocation() == null) {
         continue;
@@ -172,9 +175,6 @@ public class MultiBoxTracker {
       trackedObject.location = new RectF(potential.second.getLocation());
       trackedObject.imgId = decisionBlocksRA.bloco(sensorService).imgId;
       trackedObject.color = COLORS[0];
-
-      //gerencieGeoLocalizacao.updateOrientationAngles();
-      //rectsToTrack.add(new Pair<Float, Detector.Recognition>(result.getConfidence(), result));
 
       break;
     }

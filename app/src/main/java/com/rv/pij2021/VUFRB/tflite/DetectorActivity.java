@@ -16,6 +16,10 @@
 
 package com.rv.pij2021.VUFRB.tflite;
 
+/*
+Este codigo foi encontrado em https://github.com/tensorflow/examples/tree/master/lite/examples/object_detection/android
+ */
+
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
@@ -23,21 +27,16 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
-import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.media.ImageReader.OnImageAvailableListener;
 import android.util.Size;
-import android.util.TypedValue;
 import android.widget.Toast;
 
 import com.rv.pij2021.VUFRB.R;
 import com.rv.pij2021.VUFRB.model.CustomRectF;
-import com.rv.pij2021.VUFRB.service.DecisionBlocksRA;
 import com.rv.pij2021.VUFRB.tflite.env.ImageUtils;
 import com.rv.pij2021.VUFRB.tflite.lib_task_api.Detector;
 import com.rv.pij2021.VUFRB.tflite.lib_task_api.TFLiteObjectDetectionAPIModel;
 import com.rv.pij2021.VUFRB.tflite.tracking.MultiBoxTracker;
-import com.rv.pij2021.VUFRB.tflite.env.BorderedText;
 import com.rv.pij2021.VUFRB.tflite.customview.OverlayView;
 import com.rv.pij2021.VUFRB.tflite.customview.OverlayView.DrawCallback;
 
@@ -62,7 +61,6 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
   public boolean inference = true;
 
   OverlayView trackingOverlay;
-  private Integer sensorOrientation;
 
   private Detector detector;
 
@@ -77,17 +75,11 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
 
   private MultiBoxTracker tracker;
 
-  private BorderedText borderedText;
   private Detector.Recognition result;
   @Override
   public void onPreviewSizeChosen(final Size size, final int rotation) {
 
     //Log.i("RAUFRB","DetectorActivity.onPreviewSizeChosen()");
-    final float textSizePx =
-        TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics());
-    borderedText = new BorderedText(textSizePx);
-    borderedText.setTypeface(Typeface.MONOSPACE);
 
     tracker = new MultiBoxTracker(sensorService);
 
@@ -111,18 +103,19 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     previewWidth = size.getWidth();
     previewHeight = size.getHeight();
 
-    sensorOrientation = rotation - getScreenOrientation();
+
     //Log.i("RAUFRB","Camera orientation relative to screen canvas: "+sensorOrientation);
 
     //Log.i("RAUFRB","Initializing at size "+previewWidth+"x"+previewHeight);
     rgbFrameBitmap = Bitmap.createBitmap(previewWidth, previewHeight, Config.ARGB_8888);
     croppedBitmap = Bitmap.createBitmap(cropSize, cropSize, Config.ARGB_8888);
 
+    int sensorOrientation = rotation - getScreenOrientation();
     frameToCropTransform =
         ImageUtils.getTransformationMatrix(
             previewWidth, previewHeight,
             cropSize, cropSize,
-            sensorOrientation, MAINTAIN_ASPECT);
+                sensorOrientation, MAINTAIN_ASPECT);
 
     cropToFrameTransform = new Matrix();
     frameToCropTransform.invert(cropToFrameTransform);
@@ -167,72 +160,9 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
 
     final Canvas canvas = new Canvas(croppedBitmap);
     canvas.drawBitmap(rgbFrameBitmap, frameToCropTransform, null);
-    if(inference){
-      rectByInference();
-    }else{
-      rectBySensor();
-    }
-
+    rectByInference();
   }
-  private void rectBySensor(){
 
-    runInBackground(
-            new Runnable() {
-              @Override
-              public void run() {
-
-                // result tem que ser diferente de nulo
-                // tem que ter acontecido pelo menos uma inferencia por detector
-                // para pegar as posições dos thetas
-                if(result == null){
-                  computingDetection = false;
-                  return;
-                }
-
-                // calculate left, right, top and bottom of rect by sensor.
-                // já existiu uma detecção e o objeto está em área de visão...
-                double theta = sensorService.getTheta();
-                DecisionBlocksRA decisionBlocksRA = new DecisionBlocksRA();
-                DecisionBlocksRA.BlocoRA blocoRA = decisionBlocksRA.bloco(sensorService.longitude, sensorService.latitude, theta);
-                double r = sensorService.getR(blocoRA.p0.getLon(), blocoRA.p0.getLat());
-
-                float deltaY = (float) ((sensorService.getPhi()-trackedPos.phi0)*r*1); // y = y - deltaAcc*r*alpha, alpha é um número positivo a ser ajustado
-                CustomRectF location = result.getLocation();
-                location.top = location.top - deltaY;
-                location.bottom = location.bottom - deltaY;
-
-                float deltaX = (float) ((theta - trackedPos.theta0)*r*1);
-                location.left = location.left + deltaX;
-                location.right = location.right + deltaX;
-
-                result.setLocation(location);
-
-                // finaliza a atualização da posição
-
-                // inciar os preparos para o desenho
-
-                cropCopyBitmap = Bitmap.createBitmap(croppedBitmap);
-                final Canvas canvas = new Canvas(cropCopyBitmap);
-                final Paint paint = new Paint();
-                paint.setColor(Color.RED);
-                paint.setStyle(Style.STROKE);
-                paint.setStrokeWidth(2.0f);
-
-                final List<Detector.Recognition> mappedRecognitions = new ArrayList<Detector.Recognition>();
-
-                canvas.drawRect(result.getLocation(), paint);
-
-                cropToFrameTransform.mapRect(result.getLocation());
-                mappedRecognitions.add(result);
-
-                tracker.trackResults(mappedRecognitions);
-                trackingOverlay.postInvalidate();
-
-                computingDetection = false;
-              }
-            });
-
-  }
   private void rectByInference(){
     runInBackground(
             new Runnable() {
@@ -263,12 +193,6 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
                     mappedRecognitions.add(result0);
 
                     result = result0;
-
-                    // a certeza é alta, então o objeto na tela será conduzido por meio
-                    // de dados de sensores
-                    if (result0.getConfidence() >= 0.5){
-                      inference = false;
-                    }
                   }
                 }
 
