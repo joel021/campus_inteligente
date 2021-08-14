@@ -80,8 +80,7 @@ public class MultiBoxTracker {
     //extSizePx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 18, context.getResources().getDisplayMetrics());
     //borderedText = new BorderedText(textSizePx);
   }
-
-
+  
   public synchronized void setFrameConfiguration(final int width, final int height, final int sensorOrientation) {
     frameWidth = width;
     frameHeight = height;

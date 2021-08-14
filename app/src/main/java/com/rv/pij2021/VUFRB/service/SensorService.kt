@@ -208,6 +208,7 @@ class SensorService(private val contextActivity: Activity) : SensorEventListener
         return Math.sqrt(Math.pow(lon-longitude, 2.0)+Math.pow(lat-latitude, 2.0))
     }
 
+
     // phi é o angulo entre o vetor normal à câmera do celular e o eixo normal à terra.
     // Esse eixo normal é paralelo ao vetor direção da gravidade.
     // phi é equivalente ao angulo entre o eixo z e o raio, de coordenadas esféricas.
@@ -216,4 +217,9 @@ class SensorService(private val contextActivity: Activity) : SensorEventListener
         val a = Math.PI/(2*acceMax[2])
         return a*(valuesSensor()[5]-acceMax[2])
     }
+}
+
+
+fun getR(lon : Double, lat: Double, objLon : Float, objLat : Float): Double {
+    return Math.sqrt(Math.pow(objLon-lon, 2.0)+Math.pow(objLat-lat, 2.0))
 }

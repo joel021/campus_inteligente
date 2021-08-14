@@ -19,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.rv.pij2021.VUFRB.model.CustomRectF;
 import com.rv.pij2021.VUFRB.service.DecisionBlocksRA;
 import com.rv.pij2021.VUFRB.service.BlockService;
+import com.rv.pij2021.VUFRB.service.SensorService;
 
 public class BlockUFRBActivity extends AppCompatActivity {
     private DecisionBlocksRA.BlocoRA blocoRA;

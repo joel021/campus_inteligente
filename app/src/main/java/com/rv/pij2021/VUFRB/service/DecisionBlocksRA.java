@@ -6,9 +6,12 @@ import com.rv.pij2021.VUFRB.model.Point;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.rv.pij2021.VUFRB.service.SensorServiceKt.getR;
+
 public class DecisionBlocksRA {
 
     List<BlocoRA> blocoList = new ArrayList<>();
+
 
     public DecisionBlocksRA(){
 
@@ -81,7 +84,7 @@ public class DecisionBlocksRA {
 
                 double s = Math.abs(phi_l-theta)*sensorService.getR(blocoRA.p0.getLon(),blocoRA.p0.getLat());
                 /*
-                TODO: Deve-se ajusar a tolerancia de "s" com estes reais.
+                TODO: Deve-se ajusar a tolerancia de "s" com testes reais.
                  */
                 if (s < 10){ //as posições globais são em metros, 10 representa 10 metros de tolerancia
                     return blocoRA;
@@ -95,7 +98,7 @@ public class DecisionBlocksRA {
 
     }
 
-    public BlocoRA bloco(double longitude, double latitude, double theta, double r){
+    public BlocoRA bloco(double longitude, double latitude, double theta){
 
         for (BlocoRA blocoRA : blocoList){
 
@@ -103,7 +106,7 @@ public class DecisionBlocksRA {
             if (Math.pow(blocoRA.p0.getLon() - longitude,2) + Math.pow(blocoRA.p0.getLat() - latitude, 2) - 1 < 0){
 
                 double phi_l = Math.atan((blocoRA.p0.getLat()- latitude)/(blocoRA.p0.getLon()- longitude));
-                double s = Math.abs(phi_l-theta)*r; // s é o arco que se forma pela diferença entre os angulos
+                double s = Math.abs(phi_l-theta)*getR(longitude,latitude, blocoRA.p0.getLon(),blocoRA.p0.getLat()); // s é o arco que se forma pela diferença entre os angulos
                 /*
                 TODO: Deve-se ajusar a tolerancia de "s" com estes reais.
                  */
