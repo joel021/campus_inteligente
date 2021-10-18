@@ -77,7 +77,6 @@ public class DecisionBlocksRA {
 
         for (BlocoRA blocoRA : blocoList){
 
-            // a priori, sabe-se que aresta1 <= aresta2, sempre!
             if (Math.pow(blocoRA.p0.getLon() - sensorService.longitude,2) + Math.pow(blocoRA.p0.getLat() - sensorService.latitude, 2) - 1 < 0){
 
                 double phi_l = phi(blocoRA.p0.getLon(), sensorService.longitude, blocoRA.p0.getLat(), sensorService.latitude);
@@ -102,7 +101,6 @@ public class DecisionBlocksRA {
 
         for (BlocoRA blocoRA : blocoList){
 
-            // a priori, sabe-se que aresta1 <= aresta2, sempre!
             if (Math.pow(blocoRA.p0.getLon() - longitude,2) + Math.pow(blocoRA.p0.getLat() - latitude, 2) - 1 < 0){
 
                 double phi_l = Math.atan((blocoRA.p0.getLat()- latitude)/(blocoRA.p0.getLon()- longitude));
