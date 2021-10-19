@@ -1,0 +1,57 @@
+item {
+    name: "ANTIGA BIBLIOTECA",
+    id: 1,
+    display_name: "ANTIGA BIBLIOTECA"
+}
+item {
+    name: "BIBLIOTECA UFRB",
+    id: 2,
+    display_name: "BIBLIOTECA UFRB"
+}
+item {
+    name: "ESTUFA",
+    id: 3,
+    display_name: "ESTUFA"
+}
+item {
+    name: "LAB",
+    id: 4,
+    display_name: "LAB"
+}
+item {
+    name: "PAV ENG",
+    id: 5,
+    display_name: "PAV ENG"
+}
+
+item {
+    name: "PAV I",
+    id: 6,
+    display_name: "PAV I"
+}
+item {
+    name: "PAV II",
+    id: 7,
+    display_name: "PAV II"
+}
+item {
+    name: "PREDIO SOLOS",
+    id: 8,
+    display_name: "PREDIO SOLOS"
+}
+item {
+    name: "REITORIA UFRB",
+    id: 9,
+    display_name: "REITORIA UFRB"
+}
+item {
+    name: "CETEC",
+    id: 10,
+    display_name: "CETEC"
+}
+
+
+
+
+
+
