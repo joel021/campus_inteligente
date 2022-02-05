@@ -26,9 +26,6 @@
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:label="@string/title_activity_infomacao"/>
 
-        <activity android:name=".MainActivity">
-
-        </activity>
         <activity
             android:name=".tflite.DetectorActivity"
             android:label="@string/campus_inteligente"

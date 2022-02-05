@@ -105,7 +105,7 @@ public abstract class CameraActivity extends AppCompatActivity
 
         Intent i = new Intent(CameraActivity.this, BlockUFRBActivity.class);
 
-        // Dados que a poroxima activity precisa receber
+        // Dados que a proxima activity precisa receber
 
         i.putExtra("lat",  sensorService.latitude);
         i.putExtra("lon", sensorService.longitude);
@@ -202,7 +202,7 @@ public abstract class CameraActivity extends AppCompatActivity
         return;
       }
       isProcessingFrame = true;
-      Trace.beginSection("imageAvailable");
+
       final Plane[] planes = image.getPlanes();
       fillBytes(planes, yuvBytes);
       yRowStride = planes[0].getRowStride();
